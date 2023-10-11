@@ -45,6 +45,7 @@ def do_login(user):
     """Log in user."""
 
     session[CURR_USER_KEY] = user.id
+    g.user = User.query.get(session[CURR_USER_KEY])
 
 
 def do_logout():
@@ -52,6 +53,7 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+    g.user = None
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -66,7 +68,9 @@ def signup():
     and re-present form.
     """
 
-    do_logout()
+    if g.user:
+        do_logout()
+        flash("User logged out","success")
 
     form = UserAddForm()
 
