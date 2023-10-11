@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from werkzeug.exceptions import Unauthorized
 
 from forms import UserAddForm, LoginForm, MessageForm, CSRFProtectedForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, DEFAULT_HEADER_IMAGE_URL, DEFAULT_IMAGE_URL
 
 load_dotenv()
 
@@ -30,23 +30,23 @@ connect_db(app)
 
 
 @app.before_request
-def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
+def add_user_and_csrf_to_g():
+    """If we're logged in, add curr user to Flask global.
+       Sets global csrf_form field to our CSRF protection form"""
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
-        g.csrf_form = CSRFProtectedForm()
 
     else:
         g.user = None
-        g.csrf_form = None
+
+    g.csrf_form = CSRFProtectedForm()
 
 
 def do_login(user):
     """Log in user."""
 
     session[CURR_USER_KEY] = user.id
-    g.user = User.query.get(session[CURR_USER_KEY])
 
 
 def do_logout():
@@ -54,7 +54,6 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
-    g.user = None
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -127,7 +126,13 @@ def login():
 def logout():
     """Handle logout of user and redirect to homepage."""
 
+    if not g.user:
+        flash("You are already logged out","warning")
+        return redirect("/")
+
     form = g.csrf_form
+
+    # TODO: flip this conditional logic
 
     if form.validate_on_submit():
         do_logout()
@@ -246,7 +251,7 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
-def profile():
+def profile(): # TODO: change name
     """Update profile for current user."""
 
     if not g.user:
@@ -262,8 +267,8 @@ def profile():
 
         g.user.username = form.username.data or g.user.username
         g.user.email = form.email.data or g.user.email
-        g.user.image_url = form.image_url.data or g.user.image_url
-        g.user.header_image_url = form.header_image_url.data or g.user.header_image_url
+        g.user.image_url = form.image_url.data or DEFAULT_IMAGE_URL
+        g.user.header_image_url = form.header_image_url.data or DEFAULT_HEADER_IMAGE_URL
         g.user.bio = form.bio.data or g.user.bio
 
         db.session.commit()
@@ -290,7 +295,7 @@ def delete_user():
 
     do_logout()
 
-    db.session.delete(g.user)
+    User.query.filter_by(id=g.user.id).delete()
     db.session.commit()
     flash("Account successfully deleted.","success")
     return redirect("/signup")
@@ -373,7 +378,9 @@ def homepage():
     if g.user:
         messages = (Message
                     .query
-                    .filter(or_(Message.user_id.in_(user.id for user in g.user.following),(Message.user_id == g.user.id)))
+                    .filter(or_
+                        (Message.user_id.in_(user.id for user in g.user.following),
+                        (Message.user_id == g.user.id)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
