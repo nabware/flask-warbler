@@ -205,9 +205,14 @@ def start_following(follow_id):
     Redirect to following page for the current for the current user.
     """
 
+    form = g.csrf_form
+
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
+
+    elif not form.validate_on_submit():
+        raise Unauthorized()
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -223,9 +228,14 @@ def stop_following(follow_id):
     Redirect to following page for the current for the current user.
     """
 
+    form = g.csrf_form
+
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
+
+    elif not form.validate_on_submit():
+        raise Unauthorized()
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.remove(followed_user)
@@ -308,9 +318,14 @@ def delete_message(message_id):
     Redirect to user page on success.
     """
 
+    form = g.csrf_form
+
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
+
+    elif not form.validate_on_submit():
+        raise Unauthorized()
 
     msg = Message.query.get_or_404(message_id)
     db.session.delete(msg)
