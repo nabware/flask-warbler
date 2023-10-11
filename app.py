@@ -69,8 +69,8 @@ def signup():
     """
 
     if g.user:
-        do_logout()
-        flash("User logged out","success")
+        flash("You must be logged out to view the signup page.", "warning")
+        return redirect("/")
 
     form = UserAddForm()
 
@@ -99,6 +99,10 @@ def signup():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     """Handle user login and redirect to homepage on success."""
+
+    if g.user:
+        flash("You must be logged out to view the login page.", "warning")
+        return redirect("/")
 
     form = LoginForm()
 
