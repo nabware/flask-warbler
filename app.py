@@ -132,16 +132,14 @@ def logout():
 
     form = g.csrf_form
 
-    # TODO: flip this conditional logic
-
-    if form.validate_on_submit():
-        do_logout()
-        flash("Successfully logged out.", "success")
-
-        return redirect("/")
-
-    else:
+    if not form.validate_on_submit():
         raise Unauthorized()
+
+    do_logout()
+    flash("Successfully logged out.", "success")
+
+    return redirect("/")
+
 
 ##############################################################################
 # General user routes:
@@ -251,7 +249,7 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
-def profile(): # TODO: change name
+def edit_profile():
     """Update profile for current user."""
 
     if not g.user:
