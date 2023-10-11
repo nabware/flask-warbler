@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 toolbar = DebugToolbarExtension(app)
 
@@ -240,15 +240,17 @@ def delete_user():
     Redirect to signup page.
     """
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    form = g.csrf_form
+
+    if not g.user or not form.validate_on_submit():
+
+        raise Unauthorized()
 
     do_logout()
 
     db.session.delete(g.user)
     db.session.commit()
-
+    flash("Account successfully deleted.","success")
     return redirect("/signup")
 
 
