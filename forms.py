@@ -48,3 +48,36 @@ class LoginForm(FlaskForm):
 
 class CSRFProtectedForm(FlaskForm):
     """CSRF protected form"""
+
+class UserEditForm(FlaskForm):
+    """Form for editing user."""
+
+    username = StringField(
+        '(Optional) Username',
+        validators=[Optional(), Length(max=30)],
+    )
+
+    email = StringField(
+        '(Optional) E-mail',
+        validators=[Optional(), Email(), Length(max=50)],
+    )
+
+    image_url = StringField(
+        '(Optional) Image URL',
+        validators=[Optional(), URL(), Length(max=255)]
+    )
+
+    header_image_url = StringField(
+        '(Optional) Header Image URL',
+        validators=[Optional(), URL(), Length(max=255)]
+    )
+
+    bio = TextAreaField(
+        '(Optional) Bio',
+        validators=[Optional(), Length(max=500)]
+    )
+
+    password = PasswordField(
+        'Confirm password',
+        validators=[InputRequired(), Length(min=6, max=50)],
+    )
