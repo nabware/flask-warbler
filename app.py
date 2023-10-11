@@ -361,6 +361,32 @@ def delete_message(message_id):
     return redirect(f"/users/{g.user.id}")
 
 
+@app.post('/messages/<int:message_id>/like')
+def like_message(message_id):
+    """Like a message.
+    """
+
+    form = g.csrf_form
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    elif not form.validate_on_submit():
+        raise Unauthorized()
+
+    msg = Message.query.get_or_404(message_id)
+
+    g.user.likes.append(msg)
+
+    db.session.commit()
+
+    flash("You liked this warble!", "success")
+
+    # return redirect(f"/messages/{message_id}")
+    return redirect(request.referrer)
+
+
 ##############################################################################
 # Homepage and error pages
 

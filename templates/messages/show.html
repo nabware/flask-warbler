@@ -51,6 +51,23 @@
           <span class="text-muted">
               {{ message.timestamp.strftime('%d %B %Y') }}
             </span>
+          <form>
+            {{ g.csrf_form.hidden_tag() }}
+
+            {% if g.user in message.liked_by %}
+              <button
+                formaction="/"
+                formmethod="GET"
+                class="bi bi-heart-fill">
+              </button>
+            {% elif g.user.id != message.user.id %}
+              <button
+                formaction="/messages/{{ message.id }}/like"
+                formmethod="POST"
+                class="bi bi-heart">
+              </button>
+            {% endif %}
+          </form>
         </div>
       </li>
     </ul>
