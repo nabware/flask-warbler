@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from werkzeug.exceptions import Unauthorized
 
 from forms import UserAddForm, LoginForm, MessageForm, CSRFProtectedForm, UserEditForm
@@ -372,6 +373,7 @@ def homepage():
     if g.user:
         messages = (Message
                     .query
+                    .filter(or_(Message.user_id.in_(user.id for user in g.user.following),(Message.user_id == g.user.id)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
