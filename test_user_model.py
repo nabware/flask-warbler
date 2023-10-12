@@ -38,12 +38,15 @@ class UserModelTestCase(TestCase):
 
         u1 = User.signup("u1", "u1@email.com", "password", None)
         u2 = User.signup("u2", "u2@email.com", "password", None)
+        u3 = User.signup("u3", "u3@email.com", "password", None)
+
+        u2.following.append(u3)
 
         db.session.commit()
-        self.u1 = u1
-        self.u2 = u2
+
         self.u1_id = u1.id
         self.u2_id = u2.id
+        self.u3_id = u3.id
 
     def tearDown(self):
         db.session.rollback()
@@ -75,3 +78,29 @@ class UserModelTestCase(TestCase):
             Follow.query.filter(
                 and_(Follow.user_being_followed_id==self.u2_id,
                         Follow.user_following_id==self.u1_id)).one()
+
+    def test_stop_following(self):
+        ''' Tests attribute updating for user unfollowing another user'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u2_id
+
+            response = c.post(
+                f'/users/stop-following/{self.u3_id}',
+                headers={
+                    "referer" : "/"
+                },
+                follow_redirects=True
+            )
+
+            self.assertEqual(response.status_code,200)
+            html = response.get_data(as_text=True)
+
+            self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
+
+            Follow.query.filter(
+                and_(
+                    Follow.user_being_followed_id==self.u3_id,
+                    Follow.user_following_id==self.u2_id)
+                ).count() == 0
