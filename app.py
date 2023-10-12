@@ -392,7 +392,6 @@ def like_message(message_id):
 
     flash("You liked this warble!", "success")
 
-    # return redirect(f"/messages/{message_id}")
     return redirect(request.referrer)
 
 @app.post('/messages/<int:message_id>/unlike')
