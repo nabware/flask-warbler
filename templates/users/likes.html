@@ -9,17 +9,32 @@
       <a href="/messages/{{ message.id }}" class="message-link"></a>
 
       <a href="/users/{{ message.user.id }}">
-        <img src="{{ message.user.image_url }}"
-             alt="user image"
-             class="timeline-image">
+        <img src="{{ message.user.image_url }}" alt="user image" class="timeline-image">
       </a>
 
       <div class="message-area">
         <a href="/users/{{ message.user.id }}">@{{ message.user.username }}</a>
         <span class="text-muted">
-              {{ message.timestamp.strftime('%d %B %Y') }}
-            </span>
+          {{ message.timestamp.strftime('%d %B %Y') }}
+        </span>
         <p>{{ message.text }}</p>
+        <form>
+          {{ g.csrf_form.hidden_tag() }}
+
+          {% if g.user in message.liked_by %}
+          <button
+          formaction="/messages/{{ message.id }}/unlike"
+          formmethod="POST"
+          class="bi bi-heart-fill btn-likes">
+          </button>
+          {% elif g.user.id != message.user.id %}
+          <button
+          formaction="/messages/{{ message.id }}/like"
+          formmethod="POST"
+          class="bi bi-heart btn-likes">
+          </button>
+          {% endif %}
+        </form>
       </div>
     </li>
 
