@@ -58,14 +58,14 @@
               <button
                 formaction="/messages/{{ message.id }}/unlike"
                 formmethod="POST"
-                class="bi bi-heart-fill"
+                class="bi bi-heart-fill btn-likes"
                 style="z-index: 5">
               </button>
             {% elif g.user.id != message.user.id %}
               <button
                 formaction="/messages/{{ message.id }}/like"
                 formmethod="POST"
-                class="bi bi-heart"
+                class="bi bi-heart btn-likes"
                 style="z-index: 5">
               </button>
             {% endif %}

@@ -20,6 +20,16 @@ body.error-404 {
   cursor: pointer;
 }
 
+.btn-likes {
+  border: none;
+  background: none;
+  color: red;
+}
+
+.btn-likes:active {
+  transform: translateY(4px);
+}
+
 /* ======================= Nav */
 
 .navbar {
