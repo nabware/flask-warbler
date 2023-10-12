@@ -85,7 +85,7 @@ def signup():
             db.session.commit()
 
         except IntegrityError:
-            flash("Username already taken", 'danger')
+            flash("Username or email already taken", 'danger')
             return render_template('users/signup.html', form=form)
 
         do_login(user)
@@ -219,6 +219,12 @@ def start_following(follow_id):
         raise Unauthorized()
 
     followed_user = User.query.get_or_404(follow_id)
+
+    if followed_user in g.user.following:
+        flash("You are already following that user.", "danger")
+        return redirect("/")
+
+
     g.user.following.append(followed_user)
     db.session.commit()
 
@@ -242,6 +248,11 @@ def stop_following(follow_id):
         raise Unauthorized()
 
     followed_user = User.query.get_or_404(follow_id)
+
+    if followed_user not in g.user.following:
+        flash("You are not following that user.", "danger")
+        return redirect("/")
+
     g.user.following.remove(followed_user)
     db.session.commit()
 
