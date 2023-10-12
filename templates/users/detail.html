@@ -2,13 +2,9 @@
 
 {% block content %}
 
-<div id="warbler-hero"
-     class="full-width"
-     style="background-image: url('{{ user.header_image_url }}');">
+<div id="warbler-hero" class="full-width" style="background-image: url('{{ user.header_image_url }}');">
 </div>
-<img src="{{ user.image_url }}"
-     alt="Image for {{ user.username }}"
-     id="profile-avatar">
+<img src="{{ user.image_url }}" alt="Image for {{ user.username }}" id="profile-avatar">
 <div class="row full-width">
   <div class="container" style="max-width: 1300px;">
     <div class="row justify-content-end">
@@ -44,7 +40,11 @@
           </li>
           <li class="stat">
             <p class="small">Likes</p>
-            <h4>TBD</h4>
+            <h4>
+            <a href="/users/{{ user.id }}/likes">
+              {{ user.likes | length }}
+            </a>
+          </h4>
           </li>
 
           <li class="ms-auto">
@@ -60,8 +60,7 @@
             </form>
             {% elif g.user %}
             {% if g.user.is_following(user) %}
-            <form method="POST"
-                  action="/users/stop-following/{{ user.id }}">
+            <form method="POST" action="/users/stop-following/{{ user.id }}">
               {{ g.csrf_form.hidden_tag() }}
 
               <button class="btn btn-primary">Unfollow</button>

@@ -206,7 +206,7 @@ def show_followers(user_id):
 def start_following(follow_id):
     """Add a follow for the currently-logged-in user.
 
-    Redirect to following page for the current for the current user.
+       Redirect to previous page
     """
 
     form = g.csrf_form
@@ -222,14 +222,14 @@ def start_following(follow_id):
     g.user.following.append(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    return redirect(request.referrer)
 
 
 @app.post('/users/stop-following/<int:follow_id>')
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user.
 
-    Redirect to following page for the current for the current user.
+       Redirect to previous page
     """
 
     form = g.csrf_form
@@ -245,7 +245,7 @@ def stop_following(follow_id):
     g.user.following.remove(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    return redirect(request.referrer)
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -360,6 +360,8 @@ def delete_message(message_id):
 
     return redirect(f"/users/{g.user.id}")
 
+##############################################################################
+# Likes
 
 @app.post('/messages/<int:message_id>/like')
 def like_message(message_id):
@@ -367,15 +369,22 @@ def like_message(message_id):
     """
 
     form = g.csrf_form
+    msg = Message.query.get_or_404(message_id)
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    elif msg in g.user.likes:
+        flash("You have already liked this message", "danger")
+        return redirect(request.referrer)
+
+    elif msg.user.id == g.user.id:
+        flash("You can't like your own message","danger")
+        return redirect(request.referrer)
+
     elif not form.validate_on_submit():
         raise Unauthorized()
-
-    msg = Message.query.get_or_404(message_id)
 
     g.user.likes.append(msg)
 
@@ -385,6 +394,48 @@ def like_message(message_id):
 
     # return redirect(f"/messages/{message_id}")
     return redirect(request.referrer)
+
+@app.post('/messages/<int:message_id>/unlike')
+def unlike_message(message_id):
+    """Unlike a message.
+    """
+
+    msg = Message.query.get_or_404(message_id)
+    form = g.csrf_form
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    elif msg not in g.user.likes:
+        flash("This message is not in your likes", "danger")
+        return redirect(request.referrer)
+
+    elif not form.validate_on_submit():
+        raise Unauthorized()
+
+    g.user.likes.remove(msg)
+
+    db.session.commit()
+
+    flash("You unliked this warble!", "success")
+
+    # return redirect(f"/messages/{message_id}")
+    return redirect(request.referrer)
+
+@app.get("/users/<int:user_id>/likes")
+def show_user_likes(user_id):
+    ''' Displays a list of liked messages for a given user'''
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+
+    return render_template('users/likes.html', user=user)
+
+
 
 
 ##############################################################################
