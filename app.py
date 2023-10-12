@@ -367,6 +367,8 @@ def delete_message(message_id):
 def like_message(message_id):
     """Like a message.
     """
+    # note if you dont use AJAX: browsers may disable referrer header.
+    # include hidden input tag with form with 'referrer' information
 
     form = g.csrf_form
     msg = Message.query.get_or_404(message_id)
@@ -375,7 +377,7 @@ def like_message(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    elif msg in g.user.likes:
+    elif msg in g.user.liked_messages:
         flash("You have already liked this message", "danger")
         return redirect(request.referrer)
 
@@ -386,7 +388,7 @@ def like_message(message_id):
     elif not form.validate_on_submit():
         raise Unauthorized()
 
-    g.user.likes.append(msg)
+    g.user.liked_messages.append(msg)
 
     db.session.commit()
 
@@ -406,14 +408,14 @@ def unlike_message(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    elif msg not in g.user.likes:
+    elif msg not in g.user.liked_messages:
         flash("This message is not in your likes", "danger")
         return redirect(request.referrer)
 
     elif not form.validate_on_submit():
         raise Unauthorized()
 
-    g.user.likes.remove(msg)
+    g.user.liked_messages.remove(msg)
 
     db.session.commit()
 
