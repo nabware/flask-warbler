@@ -75,9 +75,11 @@ class UserModelTestCase(TestCase):
 
             self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
 
-            Follow.query.filter(
-                and_(Follow.user_being_followed_id==self.u2_id,
-                        Follow.user_following_id==self.u1_id)).one()
+            self.assertIsNotNone(
+                Follow.query.filter(
+                    and_(Follow.user_being_followed_id==self.u2_id,
+                        Follow.user_following_id==self.u1_id)).one_or_none()
+            )
 
     def test_stop_following(self):
         ''' Tests attribute updating for user unfollowing another user'''
@@ -99,8 +101,34 @@ class UserModelTestCase(TestCase):
 
             self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
 
-            Follow.query.filter(
+            self.assertEqual(
+                Follow.query.filter(
                 and_(
                     Follow.user_being_followed_id==self.u3_id,
                     Follow.user_following_id==self.u2_id)
-                ).count() == 0
+                ).count(),
+                0
+            )
+
+    def test_user_signup(self):
+        """Tests successful user signup"""
+
+        with app.test_client() as c:
+            user_count = User.query.count()
+
+            response = c.post(
+                "/signup",
+                data={
+                "username": "test_user",
+                "password": "password",
+                "email": "test_user@gmail.com",
+                },
+                follow_redirects=True
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(User.query.count(), user_count + 1)
+            self.assertEqual(
+                User.query.filter_by(email="test_user@gmail.com").count(),
+                1
+            )
