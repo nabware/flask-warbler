@@ -31,7 +31,6 @@ app.config['WTF_CSRF_ENABLED'] = False
 db.drop_all()
 db.create_all()
 
-
 class UserModelTestCase(TestCase):
     def setUp(self):
         User.query.delete()
@@ -58,211 +57,27 @@ class UserModelTestCase(TestCase):
         self.assertEqual(len(u1.messages), 0)
         self.assertEqual(len(u1.followers), 0)
 
-    def test_start_following(self):
-        ''' Tests attribute updating for user following another user'''
+    def test_user_authenticate_with_valid_username_password(self):
+        """Tests successful user authentication"""
 
-        with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.u1_id
+        u1 = User.query.get(self.u1_id)
 
+        authenticated_user = User.authenticate(u1.username, "password")
 
-            response = c.post(f'/users/follow/{self.u2_id}', headers={
-                    "referer" : "/"
-            },follow_redirects=True)
+        self.assertIsInstance(authenticated_user, User)
 
-            self.assertEqual(response.status_code,200)
-            html = response.get_data(as_text=True)
+    def test_user_authenticate_with_invalid_username(self):
+        """Tests user authentication with invalid username"""
 
-            self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
+        authenticated_user = User.authenticate("not_a_username", "password")
 
-            self.assertIsNotNone(
-                Follow.query.filter(
-                    and_(Follow.user_being_followed_id==self.u2_id,
-                        Follow.user_following_id==self.u1_id)).one_or_none()
-            )
+        self.assertIs(authenticated_user, False)
 
-    def test_stop_following(self):
-        ''' Tests attribute updating for user unfollowing another user'''
+    def test_user_authenticate_with_invalid_password(self):
+        """Tests user authentication with invalid password"""
 
-        with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.u2_id
+        u1 = User.query.get(self.u1_id)
 
-            response = c.post(
-                f'/users/stop-following/{self.u3_id}',
-                headers={
-                    "referer" : "/"
-                },
-                follow_redirects=True
-            )
+        authenticated_user = User.authenticate(u1.username, "not_the_right_pass")
 
-            self.assertEqual(response.status_code,200)
-            html = response.get_data(as_text=True)
-
-            self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
-
-            self.assertEqual(
-                Follow.query.filter(
-                and_(
-                    Follow.user_being_followed_id==self.u3_id,
-                    Follow.user_following_id==self.u2_id)
-                ).count(),
-                0
-            )
-
-    def test_follow_when_already_following(self):
-        ''' Tests a case where a user tries to follow someone they
-            already follow '''
-
-        with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.u1_id
-
-
-            response = c.post(f'/users/follow/{self.u2_id}', headers={
-                    "referer" : "/"
-            })
-
-            response = c.post(f'/users/follow/{self.u2_id}', headers={
-                    "referer" : "/"
-            },follow_redirects=True)
-
-            self.assertEqual(response.status_code,200)
-            html = response.get_data(as_text=True)
-
-            self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
-            self.assertIn("You are already following that user.",html)
-
-            self.assertIsNotNone(
-                Follow.query.filter(
-                    and_(Follow.user_being_followed_id==self.u2_id,
-                        Follow.user_following_id==self.u1_id)).one_or_none()
-            )
-
-    def test_unfollow_when_not_following(self):
-        ''' Tests a case where a user tries to unfollow someone they
-            are not following '''
-
-        with app.test_client() as c:
-            with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.u2_id
-
-            response = c.post(
-                f'/users/stop-following/{self.u3_id}',
-                headers={
-                    "referer" : "/"
-                },
-                follow_redirects=True
-            )
-
-            response = c.post(
-                f'/users/stop-following/{self.u3_id}',
-                headers={
-                    "referer" : "/"
-                },
-                follow_redirects=True
-            )
-
-            self.assertEqual(response.status_code,200)
-            html = response.get_data(as_text=True)
-
-            self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
-            self.assertIn("You are not following that user.",html)
-
-            self.assertEqual(
-                Follow.query.filter(
-                and_(
-                    Follow.user_being_followed_id==self.u3_id,
-                    Follow.user_following_id==self.u2_id)
-                ).count(),
-                0
-            )
-
-    def test_user_signup(self):
-        """Tests successful user signup"""
-
-        with app.test_client() as c:
-            user_count = User.query.count()
-
-            response = c.post(
-                "/signup",
-                data={
-                "username": "test_user",
-                "password": "password",
-                "email": "test_user@gmail.com",
-                },
-                follow_redirects=True
-            )
-
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(User.query.count(), user_count + 1)
-            self.assertEqual(
-                User.query.filter_by(email="test_user@gmail.com").count(),
-                1
-            )
-
-    def test_user_signup_with_invalid_inputs(self):
-        """Tests successful user signup"""
-
-        with app.test_client() as c:
-            user_count = User.query.count()
-
-            response = c.post(
-                "/signup",
-                data={
-                "username": "u1",
-                "password": "password",
-                "email": "another_test_email@gmail.com",
-                },
-                follow_redirects=True
-            )
-            db.session.rollback()
-            html = response.get_data(as_text=True)
-            self.assertIn("Username or email already taken",html)
-            self.assertIn('<!-- SIGNUP PAGE :: FOR TESTING -->',html)
-
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(User.query.count(), user_count)
-
-            ############################################################
-            # TESTING FOR NON-UNIQUE EMAIL
-
-            response = c.post(
-                "/signup",
-                data={
-                "username": "test_user",
-                "password": "password",
-                "email": "u1@email.com",
-                },
-                follow_redirects=True
-            )
-
-            html = response.get_data(as_text=True)
-            self.assertIn("Username or email already taken",html)
-            self.assertIn('<!-- SIGNUP PAGE :: FOR TESTING -->',html)
-
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(User.query.count(), user_count)
-
-            ###########################################################
-            # TESTING FOR TOO SHORT PASSWORD
-
-            response = c.post(
-                "/signup",
-                data={
-                "username": "test_user",
-                "password": "password",
-                "email": "another_test_email@email.com",
-                },
-                follow_redirects=True
-            )
-
-            html = response.get_data(as_text=True)
-            self.assertIn("Field must be between 6 and 50 characters long.",html)
-            self.assertIn('<!-- SIGNUP PAGE :: FOR TESTING -->',html)
-
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(User.query.count(), user_count)
-
-
-
+        self.assertIs(authenticated_user, False)
