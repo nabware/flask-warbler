@@ -178,6 +178,31 @@ class MessageLikeUnlikeViewTestCase(MessageBaseViewTestCase):
                 0
             )
 
+    def test_unlike_unliked_message(self):
+        ''' Tests the ability of a user to unlike a message'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m2_id}/unlike",
+                          follow_redirects=True,
+                          headers={'referer': '/'})
+
+            html= resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("This message is not in your likes", html)
+
+            self.assertEqual(
+                Like.query.filter(
+                and_(
+                    Like.message_id==self.m2_id,
+                    Like.user_id==self.u1_id)
+                ).count(),
+                0
+            )
+
     def test_user_likes_page(self):
         ''' Tests the user likes page'''
 
