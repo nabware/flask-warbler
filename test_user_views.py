@@ -363,6 +363,52 @@ class SignupTestCase(UserViewTestCase):
 class AuthorizationTestCase(UserViewTestCase):
     """Tests access for both users and non-users """
 
+    def test_root_route(self):
+        """Tests root route while logged in"""
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get("/")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            self.assertIn('HOMEPAGE :: FOR TESTING :: DO NOT MOVE', html)
+
+    def test_root_route_while_logged_out(self):
+        """Tests root route while logged out"""
+
+        with app.test_client() as c:
+            response = c.get("/")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            self.assertIn('ANON-HOMEPAGE :: FOR TESTING :: DO NOT MOVE', html)
+
+    def test_users_page(self):
+        """Tests showing users page while logged in"""
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get(f"/users/{self.u1_id}")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            self.assertIn('<h4 id="sidebar-username">@u1</h4>', html)
+
+    def test_users_page_while_logged_out(self):
+        """Tests showing users page while logged out"""
+
+        with app.test_client() as c:
+            response = c.get(f"/users/{self.u1_id}", follow_redirects=True)
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            self.assertIn('Access unauthorized.', html)
+
     def test_view_followers_page(self):
         ''' Tests visiting another users followers page'''
 
@@ -419,3 +465,4 @@ class AuthorizationTestCase(UserViewTestCase):
             self.assertIn('Access unauthorized.', html)
             self.assertNotIn('FOLLOWING PAGE :: FOR TESTING', html)
 
+#TODO: check someone elses like page if you're logged/not logged in
