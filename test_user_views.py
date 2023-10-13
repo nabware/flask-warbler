@@ -39,14 +39,18 @@ class UserViewTestCase(TestCase):
         u1 = User.signup("u1", "u1@email.com", "password", None)
         u2 = User.signup("u2", "u2@email.com", "password", None)
         u3 = User.signup("u3", "u3@email.com", "password", None)
+        u4 = User.signup("UNIQUE_USER_NAME_FOR_TEST", "u4@email.com", "password", None)
 
         u2.following.append(u3)
+        u4.following.append(u3)
+        u3.following.append(u4)
 
         db.session.commit()
 
         self.u1_id = u1.id
         self.u2_id = u2.id
         self.u3_id = u3.id
+        self.u4_id = u4.id
 
     def tearDown(self):
         db.session.rollback()
@@ -174,61 +178,65 @@ class FollowTestCase(UserViewTestCase):
                 0
             )
 
-    def test_view_followers_page(self):
-        ''' Tests visiting another users followers page'''
+    def test_follower_page_updating(self):
+        ''' Tests that when a user follows someone, that user
+            shows up in the followed user's followers page'''
 
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
 
-            response = c.get(f"/users/{self.u2_id}/followers")
+        response = c.post(f'/users/follow/{self.u2_id}', headers={
+                "referer" : "/"
+        })
 
-            self.assertEqual(response.status_code, 200)
-            html = response.get_data(as_text=True)
+        response = c.get(f'/users/{self.u2_id}/followers')
+        html = response.get_data(as_text=True)
+        self.assertIn("u1",html)
 
-            self.assertNotIn('Access unauthorized.', html)
-            self.assertIn('FOLLOWERS PAGE :: FOR TESTING', html)
-
-    def test_view_following_page(self):
-        ''' Tests visiting another users following pages'''
+    def test_following_page_updating(self):
+        ''' Tests that when a user follows someone, that user
+            shows up in the user's following page'''
 
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
 
-            response = c.get(f"/users/{self.u2_id}/following")
+        response = c.post(f'/users/follow/{self.u2_id}', headers={
+                "referer" : "/"
+        })
 
-            self.assertEqual(response.status_code, 200)
-            html = response.get_data(as_text=True)
+        response = c.get(f'/users/{self.u1_id}/following')
+        html = response.get_data(as_text=True)
+        self.assertIn("u2",html)
 
-            self.assertNotIn('Access unauthorized.', html)
-            self.assertIn('FOLLOWING PAGE :: FOR TESTING', html)
-
-    def test_view_followers_page_when_logged_out(self):
-        ''' Tests visiting users followers page when logged out'''
-
-        with app.test_client() as c:
-            response = c.get(f"/users/{self.u1_id}/followers",
-                             follow_redirects=True)
-
-            self.assertEqual(response.status_code, 200)
-            html = response.get_data(as_text=True)
-
-            self.assertIn('Access unauthorized.', html)
-            self.assertNotIn('FOLLOWERS PAGE :: FOR TESTING', html)
-
-    def test_view_following_page_when_logged_out(self):
-        ''' Tests visiting users following pages when logged out'''
+    def test_follower_page_updating_when_unfollowed(self):
+        ''' Tests that when a user unfollows someone, that user does not
+            show up in the followed user's followers page'''
 
         with app.test_client() as c:
-            response = c.get(f"/users/{self.u1_id}/following",
-                             follow_redirects=True)
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u4_id
 
-            self.assertEqual(response.status_code, 200)
-            html = response.get_data(as_text=True)
+        response = c.post(f'/users/stop-following/{self.u3_id}')
+        response = c.get(f'/users/{self.u3_id}/followers')
 
-            self.assertIn('Access unauthorized.', html)
-            self.assertNotIn('FOLLOWING PAGE :: FOR TESTING', html)
+        html = response.get_data(as_text=True)
+        self.assertNotIn("<p>@UNIQUE_USER_NAME_FOR_TEST</p>",html)
+
+    def test_following_page_updating_when_unfollowed(self):
+        ''' Tests that when a user unfollows someone, that user does not
+            show up in the previously followed user's following page'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u3_id
+
+        response = c.post(f'/users/stop-following/{self.u4_id}')
+        response = c.get(f'/users/{self.u3_id}/following')
+
+        html = response.get_data(as_text=True)
+        self.assertNotIn("<p>@UNIQUE_USER_NAME_FOR_TEST</p>",html)
 
 class SignupTestCase(UserViewTestCase):
     """Tests signup cases"""
@@ -351,3 +359,63 @@ class SignupTestCase(UserViewTestCase):
             self.assertEqual(response.status_code, 200)
             db.session.rollback()
             self.assertEqual(User.query.count(), user_count)
+
+class AuthorizationTestCase(UserViewTestCase):
+    """Tests access for both users and non-users """
+
+    def test_view_followers_page(self):
+        ''' Tests visiting another users followers page'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get(f"/users/{self.u2_id}/followers")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertNotIn('Access unauthorized.', html)
+            self.assertIn('FOLLOWERS PAGE :: FOR TESTING', html)
+
+    def test_view_following_page(self):
+        ''' Tests visiting another users following pages'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get(f"/users/{self.u2_id}/following")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertNotIn('Access unauthorized.', html)
+            self.assertIn('FOLLOWING PAGE :: FOR TESTING', html)
+
+    def test_view_followers_page_when_logged_out(self):
+        ''' Tests visiting users followers page when logged out'''
+
+        with app.test_client() as c:
+            response = c.get(f"/users/{self.u1_id}/followers",
+                             follow_redirects=True)
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertIn('Access unauthorized.', html)
+            self.assertNotIn('FOLLOWERS PAGE :: FOR TESTING', html)
+
+    def test_view_following_page_when_logged_out(self):
+        ''' Tests visiting users following pages when logged out'''
+
+        with app.test_client() as c:
+            response = c.get(f"/users/{self.u1_id}/following",
+                             follow_redirects=True)
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertIn('Access unauthorized.', html)
+            self.assertNotIn('FOLLOWING PAGE :: FOR TESTING', html)
+
