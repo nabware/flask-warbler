@@ -64,7 +64,9 @@ class MessageBaseViewTestCase(TestCase):
     def tearDown(self):
         db.session.rollback()
 
-class MessageAddViewTestCase(MessageBaseViewTestCase):
+class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
+    """Tests message add and delete cases"""
+
     def test_add_message(self):
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -107,9 +109,11 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
 
             self.assertIn("m1-text",html)
 
+class MessageLikeUnlikeViewTestCase(MessageBaseViewTestCase):
+    """Tests message like and unlike cases"""
+
     def test_like_message(self):
         ''' Tests the ability of a user to like a message'''
-
 
         with app.test_client() as c:
             with c.session_transaction() as sess:
@@ -127,3 +131,63 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
                 ).count(),
                 1
             )
+
+    def test_like_own_message(self):
+        ''' Tests that a user cannot like their own message'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m1_id}/like", follow_redirects=True,
+                          headers={'referer': '/'})
+
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("You can&#39;t like your own message", html)
+
+            self.assertEqual(
+                Like.query.filter(
+                and_(
+                    Like.message_id==self.m1_id,
+                    Like.user_id==self.u1_id)
+                ).count(),
+                0
+            )
+
+    def test_unlike_message(self):
+        ''' Tests the ability of a user to unlike a message'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m2_id}/like")
+
+            resp = c.post(f"/messages/{self.m2_id}/unlike")
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertEqual(
+                Like.query.filter(
+                and_(
+                    Like.message_id==self.m2_id,
+                    Like.user_id==self.u1_id)
+                ).count(),
+                0
+            )
+
+    def test_user_likes_page(self):
+        ''' Tests the user likes page'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m2_id}/like")
+            resp = c.get(f"/users/{self.u1_id}/likes")
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("LIKES PAGE :: FOR TESTING", html)
+            self.assertIn("m2-text", html)
