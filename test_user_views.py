@@ -51,6 +51,9 @@ class UserViewTestCase(TestCase):
     def tearDown(self):
         db.session.rollback()
 
+class FollowTestCase(UserViewTestCase):
+    """Tests follow cases"""
+
     def test_start_following(self):
         ''' Tests attribute updating for user following another user'''
 
@@ -170,6 +173,65 @@ class UserViewTestCase(TestCase):
                 ).count(),
                 0
             )
+
+    def test_view_followers_page(self):
+        ''' Tests visiting another users followers page'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get(f"/users/{self.u2_id}/followers")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertNotIn('Access unauthorized.', html)
+            self.assertIn('FOLLOWERS PAGE :: FOR TESTING', html)
+
+    def test_view_following_page(self):
+        ''' Tests visiting another users following pages'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            response = c.get(f"/users/{self.u2_id}/following")
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertNotIn('Access unauthorized.', html)
+            self.assertIn('FOLLOWING PAGE :: FOR TESTING', html)
+
+    def test_view_followers_page_when_logged_out(self):
+        ''' Tests visiting users followers page when logged out'''
+
+        with app.test_client() as c:
+            response = c.get(f"/users/{self.u1_id}/followers",
+                             follow_redirects=True)
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertIn('Access unauthorized.', html)
+            self.assertNotIn('FOLLOWERS PAGE :: FOR TESTING', html)
+
+    def test_view_following_page_when_logged_out(self):
+        ''' Tests visiting users following pages when logged out'''
+
+        with app.test_client() as c:
+            response = c.get(f"/users/{self.u1_id}/following",
+                             follow_redirects=True)
+
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+
+            self.assertIn('Access unauthorized.', html)
+            self.assertNotIn('FOLLOWING PAGE :: FOR TESTING', html)
+
+class SignupTestCase(UserViewTestCase):
+    """Tests signup cases"""
 
     def test_user_signup(self):
         """Tests successful user signup"""

@@ -357,15 +357,15 @@ def delete_message(message_id):
     """
 
     form = g.csrf_form
+    msg = Message.query.get_or_404(message_id)
 
-    if not g.user:
+    if not g.user or g.user.id != msg.user_id:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
     elif not form.validate_on_submit():
         raise Unauthorized()
 
-    msg = Message.query.get_or_404(message_id)
     db.session.delete(msg)
     db.session.commit()
 

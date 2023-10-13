@@ -68,6 +68,8 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
     """Tests message add and delete cases"""
 
     def test_add_message(self):
+        """Tests adding message"""
+
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
         with app.test_client() as c:
@@ -82,6 +84,20 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
 
             Message.query.filter_by(text="Hello").one()
 
+    def test_add_message_when_logged_out(self):
+        """Tests adding message when logged out"""
+
+        with app.test_client() as c:
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+            resp = c.post("/messages/new", data={"text": "Hello"})
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertIsNone(
+                Message.query.filter_by(text="Hello").one_or_none()
+            )
+
     def test_delete_message(self):
         ''' Tests the deletion of a message '''
 
@@ -94,6 +110,29 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
             self.assertEqual(resp.status_code, 302)
 
             self.assertEqual(Message.query.get(self.m1_id),None)
+
+    def test_delete_message_when_logged_out(self):
+        """Tests deleting message when logged out"""
+
+        with app.test_client() as c:
+            resp = c.post(f"/messages/{self.m1_id}/delete")
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertIsNotNone(Message.query.get(self.m1_id))
+
+    def test_delete_other_users_message(self):
+        ''' Tests deleting another users message '''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m2_id}/delete")
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertIsNotNone(Message.query.get(self.m2_id))
 
     def test_show_message(self):
         ''' Test the display of an individual message'''
