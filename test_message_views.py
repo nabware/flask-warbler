@@ -8,7 +8,8 @@
 import os
 from unittest import TestCase
 
-from models import db, Message, User
+from models import db, Message, User, Like
+from sqlalchemy import and_
 
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
@@ -44,14 +45,24 @@ class MessageBaseViewTestCase(TestCase):
         User.query.delete()
 
         u1 = User.signup("u1", "u1@email.com", "password", None)
+        u2 = User.signup("u2", "u2@email.com", "password", None)
+
         db.session.flush()
 
         m1 = Message(text="m1-text", user_id=u1.id)
-        db.session.add_all([m1])
+        m2 = Message(text="m2-text", user_id=u2.id)
+
+
+        db.session.add_all([m1,m2])
         db.session.commit()
 
         self.u1_id = u1.id
+        self.u2_id = u2.id
         self.m1_id = m1.id
+        self.m2_id = m2.id
+
+    def tearDown(self):
+        db.session.rollback()
 
 class MessageAddViewTestCase(MessageBaseViewTestCase):
     def test_add_message(self):
@@ -68,3 +79,51 @@ class MessageAddViewTestCase(MessageBaseViewTestCase):
             self.assertEqual(resp.status_code, 302)
 
             Message.query.filter_by(text="Hello").one()
+
+    def test_delete_message(self):
+        ''' Tests the deletion of a message '''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m1_id}/delete")
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertEqual(Message.query.get(self.m1_id),None)
+
+    def test_show_message(self):
+        ''' Test the display of an individual message'''
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.get(f"/messages/{self.m1_id}",follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn("m1-text",html)
+
+    def test_like_message(self):
+        ''' Tests the ability of a user to like a message'''
+
+
+        with app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.u1_id
+
+            resp = c.post(f"/messages/{self.m2_id}/like")
+
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertEqual(
+                Like.query.filter(
+                and_(
+                    Like.message_id==self.m2_id,
+                    Like.user_id==self.u1_id)
+                ).count(),
+                1
+            )
