@@ -64,3 +64,7 @@ class MessageModelTestCase(TestCase):
 
         self.assertLess(m1.timestamp,m2.timestamp)
         self.assertIsInstance(m1.timestamp,datetime)
+
+    def test_null_text(self):
+        ''' Tests that we can't create a message with null text'''
+
