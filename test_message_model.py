@@ -8,6 +8,7 @@
 import os
 from unittest import TestCase
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 from models import db, Message, User
 
@@ -54,9 +55,22 @@ class MessageModelTestCase(TestCase):
         self.u1_id = u1.id
         self.m1_id = m1.id
 
+    def tearDown(self):
+        db.session.rollback()
+
+    def test_successful_message(self):
+        ''' Tests successful message creation'''
+
+        m2 = Message(text="m2-text", user_id=self.u1_id)
+        db.session.add(m2)
+        db.session.commit()
+
+        self.assertIsNotNone(Message.query.get(m2.id))
+
     def test_timestamp(self):
         ''' Tests that timestamps are being added to messages
             by comparing the timestamps of two messages'''
+
         m1 = Message.query.get(self.m1_id)
         m2 = Message(text="m2-text", user_id=self.u1_id)
         db.session.add(m2)
@@ -67,4 +81,17 @@ class MessageModelTestCase(TestCase):
 
     def test_null_text(self):
         ''' Tests that we can't create a message with null text'''
+
+        with self.assertRaises(IntegrityError):
+            m2 = Message(text=None, user_id=self.u1_id)
+            db.session.add(m2)
+            db.session.commit()
+
+    def test_null_user_id(self):
+        ''' Tests that we can't create a message with null user id'''
+
+        with self.assertRaises(IntegrityError):
+            m2 = Message(text="test message", user_id=None)
+            db.session.add(m2)
+            db.session.commit()
 
