@@ -185,6 +185,7 @@ class FollowTestCase(UserViewTestCase):
     def test_follower_page_updating(self):
         ''' Tests that when a user follows someone, that user
             shows up in the followed user's followers page'''
+        #TODO: consider combining these with above
 
         with app.test_client() as c:
             with c.session_transaction() as sess:
@@ -244,6 +245,7 @@ class FollowTestCase(UserViewTestCase):
 
 class SignupTestCase(UserViewTestCase):
     """Tests signup cases"""
+    #TODO: move up before Follow test cases.
 
     def test_user_signup(self):
         """Tests successful user signup"""
@@ -267,6 +269,7 @@ class SignupTestCase(UserViewTestCase):
                 User.query.filter_by(email="test_user@gmail.com").count(),
                 1
             )
+            #TODO: check for signed in version of home page
 
     def test_user_signup_with_invalid_username(self):
         """Tests user signup with already taken username"""
@@ -379,6 +382,7 @@ class AuthorizationTestCase(UserViewTestCase):
             self.assertEqual(response.status_code, 200)
             html = response.get_data(as_text=True)
             self.assertIn('HOMEPAGE :: FOR TESTING :: DO NOT MOVE', html)
+            #TODO: check for username
 
     def test_root_route_while_logged_out(self):
         """Tests root route while logged out"""
@@ -391,7 +395,8 @@ class AuthorizationTestCase(UserViewTestCase):
             self.assertIn('ANON-HOMEPAGE :: FOR TESTING :: DO NOT MOVE', html)
 
     def test_users_page(self):
-        """Tests showing users page while logged in"""
+        """Tests showing user's page while logged in"""
+        #TODO: users_profile_page naming
 
         with app.test_client() as c:
             with c.session_transaction() as sess:
