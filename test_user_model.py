@@ -69,6 +69,7 @@ class UserModelTestCase(TestCase):
                            image_url="image_url")
 
         self.assertEqual(user.username,"test")
+        #TODO: bcrypt hash start with $2b$. check for that
         self.assertNotEqual(user.password,"password")
         self.assertEqual(user.email,"test@email.com")
         self.assertEqual(user.image_url,"image_url")
@@ -82,7 +83,7 @@ class UserModelTestCase(TestCase):
             db.session.commit()
 
         db.session.rollback()
-
+        #TODO: break into seperate tests, duplicate username and email
         with self.assertRaises(IntegrityError):
             # this email is signed up already in the setup
             User.signup("test", "u1@email.com", "password", None)
@@ -99,7 +100,7 @@ class UserModelTestCase(TestCase):
             db.session.commit()
 
         db.session.rollback()
-
+        #TODO: break into seperate tests
         with self.assertRaises(IntegrityError):
             # signing up with null email
             User.signup("test", None, "password", None)
@@ -114,13 +115,14 @@ class UserModelTestCase(TestCase):
         authenticated_user = User.authenticate(u1.username, "password")
 
         self.assertIsInstance(authenticated_user, User)
+        #TODO: test that u1 == authenticated_user
 
     def test_user_authenticate_with_invalid_username(self):
         """Tests user authentication with invalid username"""
 
         authenticated_user = User.authenticate("not_a_username", "password")
 
-        self.assertIs(authenticated_user, False)
+        self.assertFalse(authenticated_user)
 
     def test_user_authenticate_with_invalid_password(self):
         """Tests user authentication with invalid password"""
@@ -129,4 +131,4 @@ class UserModelTestCase(TestCase):
 
         authenticated_user = User.authenticate(u1.username, "not_the_right_pass")
 
-        self.assertIs(authenticated_user, False)
+        self.assertFalse(authenticated_user)

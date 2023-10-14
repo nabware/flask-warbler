@@ -66,12 +66,16 @@ class FollowTestCase(UserViewTestCase):
                 sess[CURR_USER_KEY] = self.u1_id
 
 
-            response = c.post(f'/users/follow/{self.u2_id}', headers={
-                    "referer" : "/"
-            },follow_redirects=True)
+            response = c.post(
+                f'/users/follow/{self.u2_id}',
+                headers={"referer" : "/"},
+                follow_redirects=True
+            )
 
             self.assertEqual(response.status_code,200)
             html = response.get_data(as_text=True)
+
+            #TODO: go to followers page and check for expected result
 
             self.assertIn('<!-- HOMEPAGE :: FOR TESTING :: DO NOT MOVE -->',html)
 

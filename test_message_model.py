@@ -66,6 +66,8 @@ class MessageModelTestCase(TestCase):
         db.session.commit()
 
         self.assertIsNotNone(Message.query.get(m2.id))
+        # could also check for text of message
+        # could move timestamp instance check here
 
     def test_timestamp(self):
         ''' Tests that timestamps are being added to messages
@@ -94,4 +96,6 @@ class MessageModelTestCase(TestCase):
             m2 = Message(text="test message", user_id=None)
             db.session.add(m2)
             db.session.commit()
+
+    #TODO: test for liking messages
 

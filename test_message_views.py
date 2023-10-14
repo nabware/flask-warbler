@@ -66,6 +66,7 @@ class MessageBaseViewTestCase(TestCase):
 
 class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
     """Tests message add and delete cases"""
+    #TODO: seperate adding and deleting into seperate classes. put delete on bottom
 
     def test_add_message(self):
         """Tests adding message"""
@@ -90,6 +91,7 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
         with app.test_client() as c:
             # Now, that session setting is saved, so we can have
             # the rest of ours test
+            #TODO: generally, follow redirects through. when testing views, check resulting html
             resp = c.post("/messages/new", data={"text": "Hello"})
 
             self.assertEqual(resp.status_code, 302)
@@ -100,7 +102,7 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
 
     def test_delete_message(self):
         ''' Tests the deletion of a message '''
-
+        #TODO: check for flash message
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
@@ -113,7 +115,7 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
 
     def test_delete_message_when_logged_out(self):
         """Tests deleting message when logged out"""
-
+        #TODO: check for flash message
         with app.test_client() as c:
             resp = c.post(f"/messages/{self.m1_id}/delete")
 
@@ -123,7 +125,7 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
 
     def test_delete_other_users_message(self):
         ''' Tests deleting another users message '''
-
+        #TODO: check for flash message
         with app.test_client() as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
@@ -150,7 +152,8 @@ class MessageAddDeleteViewTestCase(MessageBaseViewTestCase):
 
 class MessageLikeUnlikeViewTestCase(MessageBaseViewTestCase):
     """Tests message like and unlike cases"""
-
+    #TODO: check user follower/following test patterns and move here
+    #TODO: check heart filled in icon
     def test_like_message(self):
         ''' Tests the ability of a user to like a message'''
 
@@ -178,8 +181,11 @@ class MessageLikeUnlikeViewTestCase(MessageBaseViewTestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.u1_id
 
-            resp = c.post(f"/messages/{self.m1_id}/like", follow_redirects=True,
-                          headers={'referer': '/'})
+            resp = c.post(
+                f"/messages/{self.m1_id}/like",
+                follow_redirects=True,
+                headers={'referer': '/'}
+            )
 
             html = resp.get_data(as_text=True)
 
